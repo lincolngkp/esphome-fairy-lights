@@ -31,7 +31,7 @@ https://youtu.be/Ni5tayycIq4
 Used to capture commands from the original remote control.
 
 ```
-ir_capture/
+ESP32 IR Control.yaml
 ```
 
 ### Final Project
@@ -39,7 +39,7 @@ ir_capture/
 The finished ESPHome configuration used for Home Assistant integration.
 
 ```
-final_project/
+LEDString.yaml
 ```
 
 

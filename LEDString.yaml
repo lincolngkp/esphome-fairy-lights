@@ -1,0 +1,208 @@
+# Board: Generic ESP32-S3 Board (Generic)
+# Definition: definitions/boards/generic-esp32s3/manifest.yaml
+substitutions:
+  name: "led-string"  ## Change this name to suit your own tastes
+  friendly_name: "LED String"  ## Change this one as desired too
+  ir_tx_pin: "GPIO8"  ## Change this value to the pin you are actually using for IR transmit
+  
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  variant: esp32s3
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: ## Insert your encryption key here
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: LED String Fallback Hotspot
+    password: ## Insert fallback hotspot PSK here
+
+captive_portal:
+  id: LED_String
+
+remote_transmitter:
+  - id: led_string_remote
+    pin: ${ir_tx_pin}
+    carrier_duty_percent: 50%
+    non_blocking: true
+
+binary_sensor:
+    - platform: status
+      name: "Status"
+
+## Globals store the current "known" state of the string
+
+globals:
+  - id: led_power
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: led_mode
+    type: int
+    restore_value: no
+    initial_value: "8"
+
+## Switch to turn the lights on and off
+
+switch:
+  - platform: template
+    id: led_string
+    name: "LED String"
+
+    lambda: |-
+      return id(led_power);
+
+    turn_on_action:
+      - globals.set:
+          id: led_power
+          value: "true"
+
+      - globals.set:
+          id: led_mode
+          value: "8"
+
+      - component.update: led_mode_select
+      - script.execute: send_on
+      - script.execute: mode_8
+
+    turn_off_action:
+      - globals.set:
+          id: led_power
+          value: "false"
+      - script.execute: send_off
+
+## The following section defines the drop down list for mode selection
+
+select:
+  - platform: template
+    id: led_mode_select
+    name: "LED String Mode"
+
+    options:
+      - "Mode 1"
+      - "Mode 2"
+      - "Mode 3"
+      - "Mode 4"
+      - "Mode 5"
+      - "Mode 6"
+      - "Mode 7"
+      - "Mode 8"
+
+    lambda: |-
+      return {"Mode " + to_string(id(led_mode))};
+
+    set_action:
+      - lambda: |-
+          int mode = atoi(x.c_str() + 5);
+
+          id(led_mode) = mode;
+
+          switch(mode) {
+            case 1:
+              id(mode_1).execute();
+              break;
+            case 2:
+              id(mode_2).execute();
+              break;
+            case 3:
+              id(mode_3).execute();
+              break;
+            case 4:
+              id(mode_4).execute();
+              break;
+            case 5:
+              id(mode_5).execute();
+              break;
+            case 6:
+              id(mode_6).execute();
+              break;
+            case 7:
+              id(mode_7).execute();
+              break;
+            case 8:
+              id(mode_8).execute();
+              break;
+          }
+      - component.update: led_mode_select
+
+## The following section contains the IR codes captured and sets them up as scripts which are called above
+
+script:
+  - id: send_on
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 0160 00AD 0016 0016 0016 0016 0016 0016 0016 0016 0017 0015 0017 0015 0016 0016 0016 0016 0017 0041 0017 0041 0016 0041 0015 0042 0016 0041 0016 0041 0015 0042 0015 0042 0016 0042 0016 0016 0017 0041 0015 0016 0017 0015 0016 0016 0017 0041 0016 0015 0017 0015 0016 0042 0016 0015 0016 0042 0015 0042 0017 0041 0015 0016 0016 0042 0015 0180
+
+  - id: send_off
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015F 00AD 0018 0014 0018 0014 0018 0014 0018 0014 0018 0014 0018 0014 0018 0014 0018 0014 0018 0041 0017 0040 0017 0041 0017 0041 0017 0041 0017 0041 0017 0041 0017 0041 0017 0041 0017 0040 0017 0040 0017 0014 0018 0014 0018 0014 0018 0041 0017 0014 0018 0014 0018 0014 0018 0014 0018 0041 0017 0041 0017 0040 0017 0014 0018 0041 0017 0180
+ 
+  - id: send_timer
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015F 00AC 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0016 0041 0015 0042 0015 0016 0017 0041 0016 0041 0015 0016 0017 0015 0016 0016 0017 0041 0016 0015 0017 0041 0016 0015 0017 0015 0017 0041 0015 0042 0015 0042 0015 0016 0017 0041 0015 0180
+
+  - id: mode_1
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015D 00AE 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0016 0016 0042 0015 0016 0016 0016 0016 0016 0016 0042 0015 0016 0016 0042 0015 0042 0015 0016 0016 0042 0015 0042 0015 0042 0015 0016 0016 0042 0015 0180
+
+  - id: mode_2
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015D 00AD 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0014 0017 0014 0017 0014 0017 0014 0017 0040 0017 0014 0017 0014 0017 0014 0017 0040 0017 0040 0017 0040 0017 0040 0017 0014 0017 0040 0017 0180
+
+  - id: mode_3
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015E 00AD 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0180
+
+  - id: mode_4
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015D 00AE 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0016 0016 0042 0015 0016 0016 0016 0016 0016 0016 0016 0016 0017 0015 0042 0015 0042 0015 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0180
+
+  - id: mode_5
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015C 00AE 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0042 0015 0042 0015 0016 0016 0042 0015 0016 0016 0016 0016 0016 0016 0042 0015 0016 0016 0016 0016 0042 0015 0016 0016 0042 0015 0042 0015 0042 0015 0180
+
+  - id: mode_6
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015C 00AE 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0042 0015 0042 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0180
+
+  - id: mode_7
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015D 00AC 0017 0014 0017 0014 0017 0015 0016 0015 0016 0015 0015 0016 0015 0016 0015 0017 0016 0042 0016 0041 0016 0041 0017 0040 0018 003F 0017 0040 0018 003F 0018 003F 0018 0015 0016 0015 0018 003F 0018 003F 0018 0014 0017 0015 0018 0014 0018 0014 0018 003F 0018 003F 0018 0014 0018 0014 0018 003F 0018 003F 0018 003F 0018 003F 0018 0180
+
+  - id: mode_8
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015C 00AE 0015 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0042 0015 0042 0015 0042 0015 0042 0015 0016 0016 0042 0015 0016 0016 0042 0015 0016 0016 0016 0016 0016 0016 0016 0016 0042 0015 0016 0016 0042 0015 0180
+
+  - id: send_dim_minus
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015C 00AD 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0014 0017 0041 0016 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0014 0017 0014 0017 0014 0017 0040 0017 0014 0017 0014 0017 0014 0017 0014 0017 0040 0017 0040 0017 0040 0017 0014 0017 0040 0017 0040 0016 0041 0016 0041 0015 0180
+
+  - id: send_dim_plus
+    then:
+      - remote_transmitter.transmit_pronto:
+          data: 0000 006D 0022 0000 015E 00AD 0018 0014 0017 0014 0017 0014 0017 0014 0017 0015 0016 0014 0017 0014 0017 0014 0017 0040 0017 0040 0017 0041 0016 0040 0017 0040 0017 0040 0017 0040 0017 0040 0017 0014 0017 0040 0017 0014 0017 0041 0016 0041 0016 0014 0017 0040 0017 0014 0017 0040 0017 0014 0017 0040 0017 0014 0017 0015 0016 0040 0017 0014 0017 0040 0017 0180
